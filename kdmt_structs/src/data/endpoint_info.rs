@@ -3,20 +3,19 @@ use kdmt_structs_derive::{KdmtEndpoint, KdmtService};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, KdmtService, KdmtEndpoint)]
-#[serde(rename_all = "camelCase")]
-pub struct RealtimeData {
+pub struct EndpointInfo {
     pub unique_service_name: String,
     pub unique_endpoint_name: String,
-    pub timestamp: i64,
-    pub method: RequestType,
+    // trace name, label
+    pub label_name: Option<String>,
     pub service: String,
     pub namespace: String,
     pub version: String,
-    pub latency: u64,
-    pub status: String,
-    pub request_body: Option<String>,
-    pub request_content_type: Option<String>,
-    pub response_body: Option<String>,
-    pub response_content_type: Option<String>,
-    pub replica: u32,
+    // "http.url", true request url
+    pub url: String,
+    pub host: String,
+    pub path: String,
+    pub port: String,
+    pub method: RequestType,
+    pub cluster_name: String,
 }

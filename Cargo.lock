@@ -708,7 +708,16 @@ dependencies = [
 name = "kdmt_structs"
 version = "0.1.0"
 dependencies = [
+ "kdmt_structs_derive",
  "serde",
+]
+
+[[package]]
+name = "kdmt_structs_derive"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]
