@@ -6,8 +6,8 @@ use kdmt_structs::data::{
     endpoint_dependency::EndpointDependency, record::Record,
 };
 
-pub trait KdmtDatabaseAdaptor<T> {
-    fn connect() -> Result<T, Box<dyn Error>>;
+pub trait KdmtDatabaseAdaptor {
+    fn connect(&mut self) -> Result<(), Box<dyn Error>>;
     fn save_record(&self, record: &Record, timeout: Option<Duration>)
         -> Result<(), Box<dyn Error>>;
     fn get_records(&self) -> Result<Vec<Record>, Box<dyn Error>>;

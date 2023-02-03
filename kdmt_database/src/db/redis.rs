@@ -18,10 +18,14 @@ static PREFIX_DATATYPE: &str = "kdmt_datatype:";
 static PREFIX_DEPENDENCY: &str = "kdmt_dependency:";
 
 pub struct Redis {
-    connection: Arc<Mutex<Connection>>,
+    connection: Option<Arc<Mutex<Connection>>>,
 }
 
 impl Redis {
+    pub fn new() -> Self {
+        Redis { connection: None }
+    }
+
     fn keys_to_values<T: DeserializeOwned>(
         &self,
         connection: &mut MutexGuard<Connection>,
@@ -56,15 +60,14 @@ impl Redis {
     }
 }
 
-impl KdmtDatabaseAdaptor<Redis> for Redis {
-    fn connect() -> Result<Redis, Box<dyn Error>> {
+impl KdmtDatabaseAdaptor for Redis {
+    fn connect(&mut self) -> Result<(), Box<dyn Error>> {
         let url = std::env::var("REDIS_URI")?;
         let client = Client::open(url)?;
         let connection = client.get_connection()?;
 
-        Ok(Redis {
-            connection: Arc::new(Mutex::new(connection)),
-        })
+        self.connection = Some(Arc::new(Mutex::new(connection)));
+        Ok(())
     }
 
     fn save_record(
@@ -72,7 +75,7 @@ impl KdmtDatabaseAdaptor<Redis> for Redis {
         record: &Record,
         timeout: Option<Duration>,
     ) -> Result<(), Box<dyn Error>> {
-        let connection = Arc::clone(&self.connection);
+        let connection = Arc::clone(&self.connection.unwrap());
         let mut con = connection.lock().unwrap();
         let json = serde_json::to_string(record)?;
         let id = format!("{}{}", PREFIX_RECORD, Uuid::new_v4());
@@ -86,7 +89,7 @@ impl KdmtDatabaseAdaptor<Redis> for Redis {
     }
 
     fn get_records(&self) -> Result<Vec<Record>, Box<dyn Error>> {
-        let connection = Arc::clone(&self.connection);
+        let connection = Arc::clone(&self.connection.unwrap());
         let mut con = connection.lock().unwrap();
         let keys = con
             .scan_match::<_, String>(format!("{}*", PREFIX_RECORD))?
@@ -98,7 +101,7 @@ impl KdmtDatabaseAdaptor<Redis> for Redis {
         &self,
         crl_data: &Vec<CombinedRealtimeData>,
     ) -> Result<(), Box<dyn Error>> {
-        let connection = Arc::clone(&self.connection);
+        let connection = Arc::clone(&self.connection.unwrap());
         let mut con = connection.lock().unwrap();
 
         self.delete_difference_set(&mut con, format!("{}*", PREFIX_CRL), crl_data)?;
@@ -111,7 +114,7 @@ impl KdmtDatabaseAdaptor<Redis> for Redis {
     }
 
     fn get_combined_realtime_data(&self) -> Result<Vec<CombinedRealtimeData>, Box<dyn Error>> {
-        let connection = Arc::clone(&self.connection);
+        let connection = Arc::clone(&self.connection.unwrap());
         let mut con = connection.lock().unwrap();
         let keys = con
             .scan_match::<_, String>(format!("{}*", PREFIX_CRL))?
@@ -123,7 +126,7 @@ impl KdmtDatabaseAdaptor<Redis> for Redis {
         &self,
         datatypes: &Vec<EndpointDataType>,
     ) -> Result<(), Box<dyn Error>> {
-        let connection = Arc::clone(&self.connection);
+        let connection = Arc::clone(&self.connection.unwrap());
         let mut con = connection.lock().unwrap();
 
         self.delete_difference_set(&mut con, format!("{}*", PREFIX_DATATYPE), datatypes)?;
@@ -136,7 +139,7 @@ impl KdmtDatabaseAdaptor<Redis> for Redis {
     }
 
     fn get_endpoint_datatype(&self) -> Result<Vec<EndpointDataType>, Box<dyn Error>> {
-        let connection = Arc::clone(&self.connection);
+        let connection = Arc::clone(&self.connection.unwrap());
         let mut con = connection.lock().unwrap();
         let keys = con
             .scan_match::<_, String>(format!("{}*", PREFIX_DATATYPE))?
@@ -148,7 +151,7 @@ impl KdmtDatabaseAdaptor<Redis> for Redis {
         &self,
         dependencies: &Vec<EndpointDependency>,
     ) -> Result<(), Box<dyn Error>> {
-        let connection = Arc::clone(&self.connection);
+        let connection = Arc::clone(&self.connection.unwrap());
         let mut con = connection.lock().unwrap();
 
         self.delete_difference_set(
@@ -171,7 +174,7 @@ impl KdmtDatabaseAdaptor<Redis> for Redis {
     }
 
     fn get_endpoint_dependencies(&self) -> Result<Vec<EndpointDependency>, Box<dyn Error>> {
-        let connection = Arc::clone(&self.connection);
+        let connection = Arc::clone(&self.connection.unwrap());
         let mut con = connection.lock().unwrap();
         let keys = con
             .scan_match::<_, String>(format!("{}*", PREFIX_DEPENDENCY))?
